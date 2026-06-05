@@ -8,6 +8,9 @@ DATE     := $(shell date +%Y-%m-%d)
 LDFLAGS  := -s -w -X $(MODULE)/internal/build.Version=$(VERSION) -X $(MODULE)/internal/build.Date=$(DATE)
 PREFIX   ?= /usr/local
 
+# -race not supported on riscv64; detect arch and skip it when unavailable.
+RACE_FLAG := $(shell go env GOARCH | grep -qE '^(amd64|arm64|ppc64le|s390x)$$' && echo '-race' || echo '')
+
 .PHONY: all build vet fmt-check test unit-test integration-test examples-build install uninstall clean fetch_meta gitleaks
 
 all: test
@@ -34,7 +37,7 @@ fmt-check:
 
 # ./extension/... keeps the public plugin SDK in the default test matrix.
 unit-test: fetch_meta
-	go test -race -gcflags="all=-N -l" -count=1 \
+	go test $(RACE_FLAG) -gcflags="all=-N -l" -count=1 \
 		./cmd/... ./internal/... ./shortcuts/... ./extension/...
 
 # examples-build keeps the shipped plugin-SDK examples compilable. If this
